@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>alarm-timer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  <style>
+    body { font-family: sans-serif; padding: 2em; max-width: 300px }
+    label { display: block; margin: 1em 0 0.5em; }
+    #status { margin-top: 1em; color: green; }
+    input { width: 100% }
+  </style>
+</head>
+<body>
+  <h1>🔔 alarm-timer</h1>
+
+  <label>
+    Start Time:
+    <input type="time" id="startTime" value="15:00">
+  </label>
+
+  <label>
+    Interval (minutes):
+    <input type="number" id="interval" value="30" min="1">
+  </label>
+
+  <button id="toggle">Start Alarm</button>
+
+  <p id="nextAlarmText">Next alarm: -</p>
+  <p id="status"></p>
+
+  <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+
+  <script>
+    const startTimeInput = document.getElementById("startTime");
+    const intervalInput = document.getElementById("interval");
+    const toggleButton = document.getElementById("toggle");
+    const nextAlarmText = document.getElementById("nextAlarmText");
+    const statusText = document.getElementById("status");
+    const alarmSound = document.getElementById("alarmSound");
+
+    let alarmOn = false;
+    let nextAlarmTime = null;
+    let checkInterval = null;
+
+    // 🔔 Request Notification permission
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+
+    function sendNotification(message) {
+      if (Notification.permission === "granted") {
+        new Notification(message);
+      }
+    }
+
+    function playSound() {
+      alarmSound.currentTime = 0;
+      alarmSound.play().catch(err => console.warn("Sound error:", err));
+    }
+
+    function updateNextAlarmFrom(fromTime) {
+      const [startHour, startMinute] = startTimeInput.value.split(":").map(Number);
+      const interval = parseInt(intervalInput.value, 10);
+
+      let base = new Date();
+      base.setHours(startHour, startMinute, 0, 0);
+
+      while (base <= fromTime) {
+        base = new Date(base.getTime() + interval * 60000);
+      }
+
+      nextAlarmTime = base;
+      nextAlarmText.textContent = "Next alarm: " + base.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function updateNextAlarm() {
+      updateNextAlarmFrom(new Date());
+    }
+
+    function triggerAlarm() {
+      const message = `⏰ Alarm time: ${nextAlarmTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+      sendNotification(message);
+      playSound();
+
+      // เพิ่ม delay 1 วิ เพื่อหลีกเลี่ยง alarm ซ้ำรอบเดิม
+      setTimeout(() => updateNextAlarm(), 1000);
+    }
+
+    function checkAlarm() {
+      if (!alarmOn || !nextAlarmTime) return;
+
+      const now = new Date();
+      if (
+        now.getHours() === nextAlarmTime.getHours() &&
+        now.getMinutes() === nextAlarmTime.getMinutes() &&
+        now.getSeconds() === 0
+      ) {
+        triggerAlarm();
+      }
+    }
+
+    toggleButton.addEventListener("click", () => {
+      alarmOn = !alarmOn;
+      if (alarmOn) {
+        updateNextAlarm();
+        checkInterval = setInterval(checkAlarm, 1000);
+        toggleButton.textContent = "Stop Alarm";
+        statusText.textContent = "⏱ Alarm is ON";
+        statusText.style.color = "green";
+      } else {
+        clearInterval(checkInterval);
+        nextAlarmText.textContent = "Next alarm: -";
+        statusText.textContent = "🛑 Alarm is OFF";
+        statusText.style.color = "red";
+        toggleButton.textContent = "Start Alarm";
+      }
+    });
+  </script>
+</body>
+</html>
