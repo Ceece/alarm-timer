@@ -4,27 +4,19 @@
 <head>
   <meta charset="UTF-8">
   <title>alarm-timer</title>
-  <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#0d47a1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/icon.png" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js');
     }
   </script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
   <style>
     body {
-      font-family: sans-serif;
-      padding: 2em;
-    }
-
-    @media (min-width: 400px) {
-      body {
-        max-width: 400px;
-        margin-left: auto;
-        margin-right: auto;
-      }
+      max-width: 400px;
     }
 
     label {
@@ -38,7 +30,13 @@
     }
 
     input {
-      width: 100%
+      text-align: center;
+      width: calc(100% - 20px);
+      font-size: 36px;
+    }
+
+    #toggle {
+      font-size: 36px;
     }
   </style>
 </head>
