@@ -17,7 +17,14 @@
     body {
       font-family: sans-serif;
       padding: 2em;
-      max-width: 300px
+    }
+
+    @media (min-width: 400px) {
+      body {
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+      }
     }
 
     label {
@@ -41,7 +48,7 @@
 
   <label>
     Start Time:
-    <input type="time" id="startTime" value="15:00">
+    <input type="time" id="startTime" value="00:00">
   </label>
 
   <label>
