@@ -1,16 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>alarm-timer</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0d47a1" />
+  <link rel="icon" href="/icon.png" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
   <style>
-    body { font-family: sans-serif; padding: 2em; max-width: 300px }
-    label { display: block; margin: 1em 0 0.5em; }
-    #status { margin-top: 1em; color: green; }
-    input { width: 100% }
+    body {
+      font-family: sans-serif;
+      padding: 2em;
+      max-width: 300px
+    }
+
+    label {
+      display: block;
+      margin: 1em 0 0.5em;
+    }
+
+    #status {
+      margin-top: 1em;
+      color: green;
+    }
+
+    input {
+      width: 100%
+    }
   </style>
 </head>
+
 <body>
   <h1>🔔 alarm-timer</h1>
 
@@ -118,4 +143,5 @@
     });
   </script>
 </body>
+
 </html>
