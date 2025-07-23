@@ -1,19 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>alarm-timer</title>
   <meta name="theme-color" content="#0d47a1" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.png" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
-    }
-  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css" />
   <style>
     body {
       max-width: 400px;
@@ -22,11 +16,6 @@
     label {
       display: block;
       margin: 1em 0 0.5em;
-    }
-
-    #status {
-      margin-top: 1em;
-      color: green;
     }
 
     input {
@@ -40,133 +29,154 @@
     }
   </style>
 </head>
-
 <body>
-  <h1>🔔 alarm-timer</h1>
-
-  <label>
-    Start Time:
-    <input type="time" id="startTime" value="00:00">
-  </label>
-
-  <label>
-    Interval (minutes):
-    <input type="number" id="interval" value="30" min="1">
-  </label>
-
-  <button id="toggle" onclick="toggleAlarm()">Start Alarm</button>
-  <br />
-  <button onclick="toggleAlarm('01:29', 90)">MVP</button>
-  <button onclick="toggleAlarm('00:29', 30)">Mini</button>
-
-  <p id="nextAlarmText">Next alarm: -</p>
-  <p id="status"></p>
-
+  <div id="root"></div>
   <audio id="alarmSound" src="alarm_clock.ogg" preload="auto"></audio>
 
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const AlarmTimer = () => {
+      const [startTime, setStartTime] = useState("00:00");
+      const [interval, setIntervalValue] = useState(30);
+      const [alarmOn, setAlarmOn] = useState(false);
+      const [nextAlarmTime, setNextAlarmTime] = useState(null);
+      const [status, setStatus] = useState("");
+
+      useEffect(() => {
+        if ('Notification' in window && Notification.permission !== "granted") {
+          Notification.requestPermission();
+        }
+      }, []);
+
+      useEffect(() => {
+        if (!alarmOn || !nextAlarmTime) return;
+
+        const checkInterval = setInterval(() => {
+          const now = new Date();
+          if (
+            now.getHours() === nextAlarmTime.getHours() &&
+            now.getMinutes() === nextAlarmTime.getMinutes() &&
+            now.getSeconds() === 0
+          ) {
+            triggerAlarm();
+          }
+        }, 1000);
+
+        return () => clearInterval(checkInterval);
+      }, [alarmOn, nextAlarmTime]);
+
+      const alarmSound = document.getElementById("alarmSound");
+
+      const sendNotification = (message) => {
+        if (Notification.permission === "granted") {
+          new Notification(message);
+        }
+      };
+
+      const playSound = () => {
+        if (alarmSound) {
+          alarmSound.currentTime = 0;
+          alarmSound.play().catch(err => console.warn("Sound error:", err));
+        }
+      };
+
+      const updateNextAlarmFrom = (fromTime) => {
+        const [startHour, startMinute] = startTime.split(":").map(Number);
+        const intv = parseInt(interval, 10);
+        let base = new Date();
+        base.setHours(startHour, startMinute, 0, 0);
+
+        while (base <= fromTime) {
+          base = new Date(base.getTime() + intv * 60000);
+        }
+
+        setNextAlarmTime(base);
+      };
+
+      const triggerAlarm = () => {
+        const message = `⏰ Alarm time: ${nextAlarmTime.toLocaleTimeString([], {
+          hour: "2-digit", minute: "2-digit"
+        })}`;
+        playSound();
+        sendNotification(message);
+        setTimeout(() => updateNextAlarmFrom(new Date()), 1000);
+      };
+
+      const toggleAlarm = (customTime, customIntv) => {
+        if (customTime) setStartTime(customTime);
+        if (customIntv) setIntervalValue(customIntv);
+
+        if (alarmOn) {
+          resetAlarm();
+        } else {
+          updateNextAlarmFrom(new Date());
+          setAlarmOn(true);
+          setStatus("⏱ Alarm is ON");
+        }
+      };
+
+      const resetAlarm = () => {
+        setAlarmOn(false);
+        setNextAlarmTime(null);
+        setStatus("🛑 Alarm is OFF");
+      };
+
+      return (
+        <div>
+          <h1>🔔 alarm-timer</h1>
+
+          <label>
+            Start Time:
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
+          </label>
+
+          <label>
+            Interval (minutes):
+            <input
+              type="number"
+              min="1"
+              value={interval}
+              onChange={(e) => setIntervalValue(e.target.value)}
+            />
+          </label>
+
+          <button onClick={() => toggleAlarm()}>
+            {alarmOn ? "Stop Alarm" : "Start Alarm"}
+          </button>
+          <br />
+          <button onClick={() => toggleAlarm("01:29", 90)}>MVP</button>
+          <button onClick={() => toggleAlarm("00:29", 30)}>Mini</button>
+
+          <p>
+            Next alarm:{" "}
+            {nextAlarmTime
+              ? nextAlarmTime.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "-"}
+          </p>
+          <p style={{ color: alarmOn ? "green" : "red" }}>{status}</p>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<AlarmTimer />);
+  </script>
+
   <script>
-    const startTimeInput = document.getElementById("startTime");
-    const intervalInput = document.getElementById("interval");
-    const toggleButton = document.getElementById("toggle");
-    const nextAlarmText = document.getElementById("nextAlarmText");
-    const statusText = document.getElementById("status");
-    const alarmSound = document.getElementById("alarmSound");
-
-    let alarmOn = false;
-    let nextAlarmTime = null;
-    let checkInterval = null;
-
-    // 🔔 Request Notification permission
-    if (Notification.permission !== "granted") {
-      Notification.requestPermission();
-    }
-
-    function sendNotification(message) {
-      if (Notification.permission === "granted") {
-        new Notification(message);
-      }
-    }
-
-    function playSound() {
-      alarmSound.currentTime = 0;
-      alarmSound.play().catch(err => console.warn("Sound error:", err));
-    }
-
-    function updateNextAlarmFrom(fromTime) {
-      const [startHour, startMinute] = startTimeInput.value.split(":").map(Number);
-      const interval = parseInt(intervalInput.value, 10);
-
-      let base = new Date();
-      base.setHours(startHour, startMinute, 0, 0);
-
-      while (base <= fromTime) {
-        base = new Date(base.getTime() + interval * 60000);
-      }
-
-      nextAlarmTime = base;
-      nextAlarmText.textContent = "Next alarm: " + base.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
-
-    function updateNextAlarm() {
-      updateNextAlarmFrom(new Date());
-    }
-
-    function triggerAlarm() {
-      const message = `⏰ Alarm time: ${nextAlarmTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-      sendNotification(message);
-      playSound();
-
-      // เพิ่ม delay 1 วิ เพื่อหลีกเลี่ยง alarm ซ้ำรอบเดิม
-      setTimeout(() => updateNextAlarm(), 1000);
-    }
-
-    function checkAlarm() {
-      if (!alarmOn || !nextAlarmTime) return;
-
-      const now = new Date();
-      if (
-        now.getHours() === nextAlarmTime.getHours() &&
-        now.getMinutes() === nextAlarmTime.getMinutes() &&
-        now.getSeconds() === 0
-      ) {
-        triggerAlarm();
-      }
-    }
-
-    function toggleAlarm(time, interval) {
-
-      if (time) {
-        startTimeInput.value = time;
-        resetAlarm()
-      }
-
-      if (interval) {
-        intervalInput.value = interval;
-        resetAlarm()
-      }
-
-      alarmOn = !alarmOn;
-
-      if (alarmOn) {
-        updateNextAlarm();
-        checkInterval = setInterval(checkAlarm, 1000);
-        toggleButton.textContent = "Stop Alarm";
-        statusText.textContent = "⏱ Alarm is ON";
-        statusText.style.color = "green";
-      } else {
-        resetAlarm();
-      }
-    }
-
-    function resetAlarm() {
-      alarmOn = false;
-      clearInterval(checkInterval);
-      nextAlarmText.textContent = "Next alarm: -";
-      statusText.textContent = "🛑 Alarm is OFF";
-      statusText.style.color = "red";
-      toggleButton.textContent = "Start Alarm";
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
     }
   </script>
 </body>
-
 </html>
