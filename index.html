@@ -35,8 +35,8 @@
       font-size: 36px;
     }
 
-    #toggle {
-      font-size: 36px;
+    button {
+      font-size: 24px;
     }
   </style>
 </head>
@@ -54,12 +54,15 @@
     <input type="number" id="interval" value="30" min="1">
   </label>
 
-  <button id="toggle">Start Alarm</button>
+  <button id="toggle" onclick="toggleAlarm()">Start Alarm</button>
+  <br />
+  <button onclick="toggleAlarm('01:29', 90)">MVP</button>
+  <button onclick="toggleAlarm('00:29', 30)">Mini</button>
 
   <p id="nextAlarmText">Next alarm: -</p>
   <p id="status"></p>
 
-  <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+  <audio id="alarmSound" src="/alarm_clock.ogg" preload="auto"></audio>
 
   <script>
     const startTimeInput = document.getElementById("startTime");
@@ -130,8 +133,20 @@
       }
     }
 
-    toggleButton.addEventListener("click", () => {
+    function toggleAlarm(time, interval) {
+
+      if (time) {
+        startTimeInput.value = time;
+        resetAlarm()
+      }
+
+      if (interval) {
+        intervalInput.value = interval;
+        resetAlarm()
+      }
+
       alarmOn = !alarmOn;
+
       if (alarmOn) {
         updateNextAlarm();
         checkInterval = setInterval(checkAlarm, 1000);
@@ -139,13 +154,18 @@
         statusText.textContent = "⏱ Alarm is ON";
         statusText.style.color = "green";
       } else {
-        clearInterval(checkInterval);
-        nextAlarmText.textContent = "Next alarm: -";
-        statusText.textContent = "🛑 Alarm is OFF";
-        statusText.style.color = "red";
-        toggleButton.textContent = "Start Alarm";
+        resetAlarm();
       }
-    });
+    }
+
+    function resetAlarm() {
+      alarmOn = false;
+      clearInterval(checkInterval);
+      nextAlarmText.textContent = "Next alarm: -";
+      statusText.textContent = "🛑 Alarm is OFF";
+      statusText.style.color = "red";
+      toggleButton.textContent = "Start Alarm";
+    }
   </script>
 </body>
 
