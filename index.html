@@ -46,42 +46,47 @@
       const [alarmOn, setAlarmOn] = useState(false);
       const [nextAlarmTime, setNextAlarmTime] = useState(null);
       const [status, setStatus] = useState("");
+      const [lastTriggeredKey, setLastTriggeredKey] = useState(null);
 
       useEffect(() => {
-        if ('Notification' in window && Notification.permission !== "granted") {
+        if ("Notification" in window && Notification.permission !== "granted") {
           Notification.requestPermission();
         }
-      }, []);
+      }, [alarmOn]);
 
       useEffect(() => {
         if (!alarmOn || !nextAlarmTime) return;
 
-        const checkInterval = setInterval(() => {
+        const intervalId = setInterval(() => {
           const now = new Date();
-          if (
+          const key = now.toISOString().slice(0, 16); // 'YYYY-MM-DDTHH:mm'
+          const isTimeMatch =
             now.getHours() === nextAlarmTime.getHours() &&
-            now.getMinutes() === nextAlarmTime.getMinutes() &&
-            now.getSeconds() === 0
-          ) {
+            now.getMinutes() === nextAlarmTime.getMinutes();
+
+          if (isTimeMatch && now.getSeconds() === 0 && lastTriggeredKey !== key) {
+            setLastTriggeredKey(key);
             triggerAlarm();
           }
         }, 1000);
 
-        return () => clearInterval(checkInterval);
-      }, [alarmOn, nextAlarmTime]);
+        return () => clearInterval(intervalId);
+      }, [alarmOn, nextAlarmTime, lastTriggeredKey]);
 
       const alarmSound = document.getElementById("alarmSound");
 
       const sendNotification = (message) => {
-        if (Notification.permission === "granted") {
-          new Notification(message);
+        if ("Notification" in window && Notification.permission === "granted") {
+          try {
+            new Notification(message);
+          } catch (e) {}
         }
       };
 
       const playSound = () => {
         if (alarmSound) {
           alarmSound.currentTime = 0;
-          alarmSound.play().catch(err => console.warn("Sound error:", err));
+          alarmSound.play().catch((err) => console.warn("Sound error:", err));
         }
       };
 
@@ -99,12 +104,14 @@
       };
 
       const triggerAlarm = () => {
-        const message = `⏰ Alarm time: ${nextAlarmTime.toLocaleTimeString([], {
-          hour: "2-digit", minute: "2-digit"
-        })}`;
-        playSound();
+        const timeString = nextAlarmTime.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const message = `⏰ Alarm time: ${timeString}`;
         sendNotification(message);
-        setTimeout(() => updateNextAlarmFrom(new Date()), 1000);
+        playSound();
+        updateNextAlarmFrom(new Date());
       };
 
       const toggleAlarm = (customTime, customIntv) => {
